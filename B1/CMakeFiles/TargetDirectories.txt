@@ -1,0 +1,8 @@
+/home/jack/bishsim/B1/CMakeFiles/install/strip.dir
+/home/jack/bishsim/B1/CMakeFiles/install/local.dir
+/home/jack/bishsim/B1/CMakeFiles/install.dir
+/home/jack/bishsim/B1/CMakeFiles/list_install_components.dir
+/home/jack/bishsim/B1/CMakeFiles/rebuild_cache.dir
+/home/jack/bishsim/B1/CMakeFiles/edit_cache.dir
+/home/jack/bishsim/B1/CMakeFiles/B1.dir
+/home/jack/bishsim/B1/CMakeFiles/exampleB1.dir

@@ -1,0 +1,83 @@
+G4VParticleChange* BinaryReactionProcess::Decay( const G4Track& aTrack,
+                                                    const G4Step& aStep,int Z1, int A1, int Z2, int A2, double Ex) {
+	G4double M1,M2;
+        G4DynamicParticle* part1 = new G4DynamicParticle;
+       	G4ParticleDefinition* part1def;
+	G4String particleName;
+
+        if(Z1>0) {
+        	part1def=G4IonTable::GetIonTable()->GetIon(Z1,A1,0.);
+	}
+	if(Z1==0) {
+		G4ParticleTable* particleTable = G4ParticleTable::GetParticleTable();
+		part1def = particleTable->FindParticle(particleName="neutron");
+	}
+       	part1->SetDefinition(part1def);
+       	M1=part1def->GetPDGMass()/CLHEP::amu_c2;
+
+        G4DynamicParticle* part2 = new G4DynamicParticle;
+        G4ParticleDefinition* part2def;
+        part2def=G4IonTable::GetIonTable()->GetIon(Z2,A2,Ex*MeV);
+        part2->SetDefinition(part2def);
+        M2=part2def->GetPDGMass()/CLHEP::amu_c2;
+////Do some kinematics
+        G4double CM_theta=G4UniformRand()*4.*atan(1.);//0->pi
+        G4double CM_psi=G4UniformRand()*4.*2.*atan(1.);//0->pi
+//Get Q-value
+        G4double Q_value=0;
+        Q_value=aTrack.GetDynamicParticle()->GetDefinition()->GetPDGMass()-(part1def->GetPDGMass()+part2def->GetPDGMass());
+//      G4cout<<"Effective Q-value= "<<Q_value/MeV<<G4endl;
+        G4double E_cm = Q_value;//new CM energy
+        if(E_cm<0.) return &aParticleChange;//sub-threshold
+        G4double p_1 = sqrt(2.*part1->GetMass()*E_cm*(1.*M2/(M1+M2)));//E_1 = m2/(m1+m2) * E_t
+        G4double p_2 = sqrt(2.*part2->GetMass()*E_cm*(1.*M1/(M1+M2)));//E_2 = m1/(m1+m2) * E_t
+        G4ThreeVector p_new_1 = G4ThreeVector(p_1*sin(CM_theta)*sin(CM_psi),p_1*sin(CM_theta)*cos(CM_psi),p_1*cos(CM_theta));// new momentum of scattered Be in COM
+        G4ThreeVector p_new_2 = -p_new_1;
+        G4ThreeVector p_n = aTrack.GetMomentum();
+        p_new_1+=p_n*(1.*M1/(M1+M2));
+        p_new_2+=p_n*(1.*M2/(M1+M2));
+	if(Z1==2 && A2==4) {
+//      G4cout<<"Q-value:\t"<<Q_value<<G4endl;
+  //   G4cout<<"Part 1:\t"<<p_new_1<<G4endl;
+  // G4cout<<"Part 2:\t"<<p_new_2<<G4endl;
+   //   G4cout<<"Orig:\t"<<p_n<<G4endl;
+	}
+        part1->SetMomentum(p_new_1);
+        part2->SetMomentum(p_new_2);
+        G4double total_mom_1=p_new_1.getR();
+        G4double total_mom_2=p_new_2.getR();
+        part1->SetKineticEnergy((total_mom_1*total_mom_1)/(2.*part1->GetMass()));
+        part2->SetKineticEnergy((total_mom_2*total_mom_2)/(2.*part2->GetMass()));
+//	G4cout<<"E1:\t"<<part1->GetKineticEnergy()<<"\tE2:\t"<<part2->GetKineticEnergy()<<G4endl;
+//	if(Z1==2 && A2==4) G4cout<<part1->GetKineticEnergy()<<"\t"<<p_new_1.theta()<<"\t"<<p_new_1.phi()<<"\t"<<part2->GetKineticEnergy()<<"\t"<<p_new_2.theta()<<"\t"<<p_new_2.phi()<<G4endl;
+//	if(Z1==2 && A2==4) G4cout<<(total_mom_1*total_mom_1)/(2.*part1->GetMass())+(total_mom_2*total_mom_2)/(2.*part2->GetMass())<<G4endl;
+//	if(Z1==0 && A1==1) G4cout<<"Neutron: "<<(total_mom_1*total_mom_1)/(2.*part1->GetMass())<<"\t"<<(total_mom_2*total_mom_2)/(2.*part2->GetMass())<<G4endl;
+	G4double E1,E2;
+	E1=sqrt(2.*4.*part1->GetKineticEnergy());
+	E2=sqrt(2.*4.*part2->GetKineticEnergy());
+	G4ThreeVector p1 = G4ThreeVector(E1*sin(p_new_1.theta())*cos(p_new_1.phi()),E1*sin(p_new_1.theta())*sin(p_new_1.phi()),E1*cos(p_new_1.theta()));
+	G4ThreeVector p2 = G4ThreeVector(E2*sin(p_new_2.theta())*cos(p_new_2.phi()),E2*sin(p_new_2.theta())*sin(p_new_2.phi()),E2*cos(p_new_2.theta()));
+//	G4cout<<p1<<"\t"<<p_new_1<<G4endl;
+	G4ThreeVector p_Be = p1+p2;
+//	if(Z1==2 && A2==4) G4cout<<(p_Be.getR()*p_Be.getR())/(2.*8.)-(p1.getR()*p1.getR())/(2.*4.)-(p2.getR()*p2.getR())/(2.*4.)<<G4endl;
+//	if(Z1==0 && A1==1) {
+//		part1->DumpInfo();
+//		part2->DumpInfo();
+//	}
+	G4cout<<part1->GetDefinition()->GetParticleName()<<"\t"<<part1->GetKineticEnergy()<<G4endl;
+	G4cout<<part2->GetDefinition()->GetParticleName()<<"\t"<<part2->GetKineticEnergy()<<G4endl;
+        G4Track* sec1 = new G4Track(part1,
+                aTrack.GetGlobalTime(),
+                aTrack.GetPosition());
+
+        G4Track* sec2 = new G4Track(part2,
+                aTrack.GetGlobalTime(),
+                aTrack.GetPosition());
+
+        aParticleChange.AddSecondary(sec1);
+        aParticleChange.AddSecondary(sec2);
+        aParticleChange.ProposeEnergy(0.);
+        aParticleChange.ProposeTrackStatus(fStopAndKill);
+
+        return &aParticleChange;
+}
